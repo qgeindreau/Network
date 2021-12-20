@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+{% load comments crispy_forms_tags thumbnail humanize %}
+
+{% block title %}{{ notebook.title|title }}{% endblock %}
+
+{% block content %}
+  <!-- Page Content -->
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'news:list' %}">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'notebooks:list' %}">{% trans 'notebooks' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ notebook.title|title }}</li>
+      </ol>
+    </nav>
+    <div class="row">
+      <!-- Post Content Column -->
+      <div class="col-lg-8" style="background:white;">
+        <!-- Title -->
+        <h1 class="mt-4">{{ notebook.title|title }}</h1>
+        <!-- dev -->
+        <p class="lead">{% trans 'by' %}
+          <a href="{% url 'users:detail' notebook.user.username %}">{{ notebook.user.get_profile_name|title }}</a>
+        </p>
+        <hr>
+        <!-- Date/Time -->
+        <p>{% trans 'Posté' %} {{ notebook.timestamp|naturaltime }}  </p>
+        <hr>
+        <h5>Description:</h5>
+        <hr>
+        <p>{{notebook.description}}</p>
+        <hr>
+        <!-- Featured Image -->
+        {% if notebook.vue %}
+        <p >Voir le notebook: <a href="{{notebook.vue.url}}" target="_blank">Lien</a></p>          
+        {% else %}
+        <p class="card-text">Pas de preview fournit, désolé.</p>
+        {% endif %}
+        <!-- <img src="{{ MEDIA_URL }}{{ notebook.image }}" lt="{% trans 'Featured Image' %}" class="card-img-top"> -->
+        <hr>
+        <p >Télécharger le notebook: <a href="{{ notebook.file.url }}">Lien</a></p>
+        <hr>
+
+        <!-- Comments Form -->
+        <div class="card my-4">
+          <h5 class="card-header">{% trans 'Leave a Comment' %}:</h5>
+          <div class="card-body" style="background: gray;">
+            {% if user.is_authenticated %}
+              {% get_comment_form for notebook as form %}
+              <form action="{% comment_form_target %}" method="POST">
+                {% csrf_token %}
+                {{ form.comment|as_crispy_field }}
+                {{ form.honeyspot }}
+                {{ form.content_type }}
+                {{ form.object_pk }}
+                {{ form.timestamp }}
+                {{ form.security_hash }}
+                <input type="hidden" name="next" value="{% url 'notebooks:notebook' notebook.slug %}" />
+                <input type="submit" value="{% trans 'Commenter' %}" id="id_submit" />
+              </form>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Single Comment -->
+
+        {% get_comment_list for notebook as comment_list %}
+        {% for comment in comment_list %}
+          <div class="media mb-4">
+            {% thumbnail comment.user.picture "x50" as im %}
+              <img class="d-flex mr-3 rounded-circle" src="{{ im.url }}" alt="{% trans 'Picture Profile' %}" id="pic" />
+            {% empty %}
+              <img class="d-flex mr-3 rounded-circle" src="{% static 'img/user.png' %}" height="50px" alt="{% trans 'No Profile Picture' %}" />
+            {% endthumbnail %}
+            <div class="media-body">
+              <h5 class="mt-0">{{ comment.user.get_profile_name|title }}</h5>
+              {{ comment.comment|linebreaks }}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Sidebar Widgets Column -->
+      <div class="col-md-4">
+
+        <!-- Write notebook Widget -->
+        {% if request.user.is_authenticated %}
+          <div class="card my-4">
+            <div class="card-body text-center">
+              <a class="btn btn-success" href="{% url 'notebooks:write_new' %}" title="{% trans 'Écrire un notebook' %}"><i class="fa fa-pencil" aria-hidden="true"></i> {% trans 'New notebook' %}</a>
+              <a class="btn btn-primary" href="{% url 'notebooks:edit_notebook' notebook.id %}" title="{% trans 'Éditer cet notebook' %}"><i class="fa fa-pencil-square-o" aria-hidden="true"></i> {% trans 'Edit' %}</a>
+            </div>
+          </div>
+        {% endif %}
+        <!-- Cloud Tag Widget -->
+        <div class="card my-4">
+          <h5 class="card-header">{% trans 'Tags' %}</h5>
+          <div class="card-body">
+            {% for tag in notebook.tags.all %}
+              <a href="#"><span class="badge badge-info">{{ tag }}</span></a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /.row -->
+  </div>
+  <!-- /.container -->
+{% endblock content %}
